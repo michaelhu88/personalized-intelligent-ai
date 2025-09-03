@@ -22,21 +22,21 @@ function ModalSection({ title, children, defaultExpanded = true }: SectionProps)
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="mb-6">
+    <div className="mb-3">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 bg-bolt-elements-bg-depth-2 hover:bg-bolt-elements-bg-depth-3 rounded-t-lg transition-colors"
+        className="w-full flex items-center justify-between p-3 bg-black hover:bg-gray-900 rounded-t-lg transition-colors"
       >
-        <h3 className="text-xl font-semibold text-bolt-elements-textPrimary">{title}</h3>
+        <h3 className="text-xl font-black text-white">{title}</h3>
         <div className={classNames(
           'transition-transform duration-200',
           isExpanded ? 'rotate-90' : 'rotate-0'
         )}>
-          <div className="i-ph:caret-right text-bolt-elements-textSecondary text-2xl" />
+          <div className="i-ph:caret-right text-white text-2xl" />
         </div>
       </button>
       {isExpanded && (
-        <div className="p-6 bg-bolt-elements-bg-depth-1 rounded-b-lg border-t border-bolt-elements-borderColor">
+        <div className="p-3 bg-bolt-elements-bg-depth-1 rounded-b-lg border-t border-bolt-elements-borderColor">
           {children}
         </div>
       )}
@@ -47,9 +47,9 @@ function ModalSection({ title, children, defaultExpanded = true }: SectionProps)
 function InfoItem({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
-    <div className="mb-3">
-      <span className="font-semibold text-bolt-elements-textPrimary text-base">{label}: </span>
-      <span className="text-bolt-elements-textSecondary text-base leading-relaxed">{value}</span>
+    <div className="mb-2">
+      <span className="font-semibold text-white text-sm">{label}: </span>
+      <span className="text-white text-sm leading-relaxed">{value}</span>
     </div>
   );
 }
@@ -58,13 +58,13 @@ function ListSection({ title, items }: { title: string; items?: string[] }) {
   if (!items || items.length === 0) return null;
   
   return (
-    <div className="mb-6">
-      <h4 className="font-semibold text-bolt-elements-textPrimary mb-3 text-lg">{title}</h4>
-      <ul className="space-y-2 ml-4">
+    <div className="mb-3">
+      <h4 className="font-semibold text-white mb-2 text-base">{title}</h4>
+      <ul className="space-y-1 ml-4">
         {items.map((item, index) => (
           <li key={index} className="flex items-start">
             <div className="w-2 h-2 rounded-full bg-blue-500 mt-3 mr-4 flex-shrink-0" />
-            <span className="text-bolt-elements-textSecondary text-base leading-relaxed">{item}</span>
+            <span className="text-white text-sm leading-relaxed">{item}</span>
           </li>
         ))}
       </ul>
@@ -76,9 +76,9 @@ function PhaseItem({ title, content }: { title: string; content?: string }) {
   if (!content) return null;
   
   return (
-    <div className="mb-6 p-5 bg-bolt-elements-bg-depth-2 rounded-lg">
-      <h4 className="font-semibold text-bolt-elements-textPrimary mb-3 text-lg">{title}</h4>
-      <p className="text-bolt-elements-textSecondary text-base leading-relaxed">{content}</p>
+    <div className="mb-3 p-3 bg-bolt-elements-bg-depth-2 rounded-lg">
+      <h4 className="font-semibold text-white mb-2 text-base">{title}</h4>
+      <p className="text-white text-sm leading-relaxed">{content}</p>
     </div>
   );
 }
@@ -143,12 +143,20 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
   return (
     <DialogRoot open={isOpen} onOpenChange={onClose}>
       <Dialog 
-        className="w-[90vw] h-[85vh] max-w-none max-h-none flex flex-col"
+        className="!w-[95vw] !h-[90vh] !max-w-none !max-h-none !flex !flex-col !overflow-hidden"
         onClose={onClose}
         showCloseButton={true}
+        style={{ 
+          width: '95vw', 
+          height: '90vh', 
+          maxWidth: 'none', 
+          maxHeight: 'none' 
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-bolt-elements-borderColor flex-shrink-0">
+        {/* Height Bridge Wrapper */}
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-bolt-elements-borderColor flex-shrink-0">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
               <div className="i-ph:clipboard-text-bold text-white text-xl" />
@@ -165,8 +173,8 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-none space-y-6">
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden p-4">
+          <div className="max-w-none space-y-3">
             {/* Project Overview */}
             <ModalSection title="Project Overview">
               <InfoItem label="Vision" value={plan.overview.vision} />
@@ -198,7 +206,7 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
             {/* Additional sections */}
             {plan.structure && (
               <ModalSection title="Project Structure">
-                <pre className="text-sm text-bolt-elements-textSecondary whitespace-pre-wrap font-mono bg-bolt-elements-bg-depth-2 p-4 rounded-lg leading-relaxed">
+                <pre className="text-sm text-white whitespace-pre-wrap font-mono bg-bolt-elements-bg-depth-2 p-4 rounded-lg leading-relaxed">
                   {plan.structure}
                 </pre>
               </ModalSection>
@@ -206,7 +214,7 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
 
             {plan.considerations && (
               <ModalSection title="Considerations & Risks">
-                <p className="text-bolt-elements-textSecondary text-base leading-relaxed whitespace-pre-wrap">
+                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
                   {plan.considerations}
                 </p>
               </ModalSection>
@@ -214,7 +222,7 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
 
             {plan.nextSteps && (
               <ModalSection title="Next Steps">
-                <p className="text-bolt-elements-textSecondary text-base leading-relaxed whitespace-pre-wrap">
+                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
                   {plan.nextSteps}
                 </p>
               </ModalSection>
@@ -224,7 +232,7 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
 
         {/* Sticky Footer with Action Buttons */}
         {(onApprove || onRevise) && (
-          <div className="flex items-center justify-center space-x-4 p-6 border-t border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 flex-shrink-0">
+          <div className="flex items-center justify-center space-x-4 p-4 border-t border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 flex-shrink-0">
             {onRevise && (
               <button
                 onClick={handleRevise}
@@ -245,6 +253,7 @@ export function PlanModal({ plan, isOpen, onClose, onApprove, onRevise, userId }
             )}
           </div>
         )}
+        </div>
       </Dialog>
     </DialogRoot>
   );

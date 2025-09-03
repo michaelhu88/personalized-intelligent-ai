@@ -24,14 +24,14 @@ function CollapsibleSection({ title, children, defaultExpanded = true }: Section
     <div className="border border-bolt-elements-borderColor rounded-lg overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 bg-bolt-elements-bg-depth-2 flex items-center justify-between hover:bg-bolt-elements-bg-depth-3 transition-colors"
+        className="w-full px-4 py-3 bg-black flex items-center justify-between hover:bg-gray-900 transition-colors"
       >
-        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">{title}</h3>
+        <h3 className="text-lg font-black text-white">{title}</h3>
         <div className={classNames(
           'transition-transform duration-200',
           isExpanded ? 'rotate-90' : 'rotate-0'
         )}>
-          <div className="i-ph:caret-right text-bolt-elements-textSecondary text-xl" />
+          <div className="i-ph:caret-right text-white text-xl" />
         </div>
       </button>
       {isExpanded && (
@@ -47,8 +47,8 @@ function InfoItem({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
     <div className="mb-2">
-      <span className="font-medium text-bolt-elements-textPrimary">{label}: </span>
-      <span className="text-bolt-elements-textSecondary">{value}</span>
+      <span className="font-medium text-white">{label}: </span>
+      <span className="text-white">{value}</span>
     </div>
   );
 }
@@ -58,12 +58,12 @@ function ListSection({ title, items }: { title: string; items?: string[] }) {
   
   return (
     <div className="mb-4">
-      <h4 className="font-medium text-bolt-elements-textPrimary mb-2">{title}</h4>
+      <h4 className="font-medium text-white mb-2">{title}</h4>
       <ul className="space-y-1 ml-4">
         {items.map((item, index) => (
           <li key={index} className="flex items-start">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 mr-3 flex-shrink-0" />
-            <span className="text-bolt-elements-textSecondary">{item}</span>
+            <span className="text-white">{item}</span>
           </li>
         ))}
       </ul>
@@ -76,8 +76,8 @@ function PhaseItem({ title, content }: { title: string; content?: string }) {
   
   return (
     <div className="mb-4 p-3 bg-bolt-elements-bg-depth-2 rounded-lg">
-      <h4 className="font-medium text-bolt-elements-textPrimary mb-2">{title}</h4>
-      <p className="text-bolt-elements-textSecondary text-sm leading-relaxed">{content}</p>
+      <h4 className="font-medium text-white mb-2">{title}</h4>
+      <p className="text-white text-sm leading-relaxed">{content}</p>
     </div>
   );
 }
@@ -197,7 +197,7 @@ export function PlanDisplay({ plan, onApprove, onRevise, className, userId }: Pl
         {/* Additional sections */}
         {plan.structure && (
           <CollapsibleSection title="Project Structure" defaultExpanded={false}>
-            <pre className="text-sm text-bolt-elements-textSecondary whitespace-pre-wrap font-mono bg-bolt-elements-bg-depth-2 p-3 rounded">
+            <pre className="text-sm text-white whitespace-pre-wrap font-mono bg-bolt-elements-bg-depth-2 p-3 rounded">
               {plan.structure}
             </pre>
           </CollapsibleSection>
@@ -205,7 +205,7 @@ export function PlanDisplay({ plan, onApprove, onRevise, className, userId }: Pl
 
         {plan.considerations && (
           <CollapsibleSection title="Considerations & Risks" defaultExpanded={false}>
-            <p className="text-bolt-elements-textSecondary text-sm leading-relaxed whitespace-pre-wrap">
+            <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
               {plan.considerations}
             </p>
           </CollapsibleSection>
@@ -213,7 +213,7 @@ export function PlanDisplay({ plan, onApprove, onRevise, className, userId }: Pl
 
         {plan.nextSteps && (
           <CollapsibleSection title="Next Steps">
-            <p className="text-bolt-elements-textSecondary text-sm leading-relaxed whitespace-pre-wrap">
+            <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
               {plan.nextSteps}
             </p>
           </CollapsibleSection>
