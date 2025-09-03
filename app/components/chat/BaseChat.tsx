@@ -146,6 +146,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    
+    // Debug logging for isStreaming prop
+    useEffect(() => {
+      console.log('[DEBUG BaseChat] isStreaming prop changed:', isStreaming);
+    }, [isStreaming]);
 
     useEffect(() => {
       if (expoUrl) {
@@ -166,6 +171,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [transcript]);
 
     useEffect(() => {
+      console.log('[DEBUG] BaseChat received isStreaming prop:', isStreaming);
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
 

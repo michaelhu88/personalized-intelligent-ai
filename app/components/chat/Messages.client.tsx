@@ -29,6 +29,9 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
+    
+    // Debug logging for streaming state
+    console.log('[DEBUG Messages] isStreaming prop:', isStreaming);
 
     const handleRewind = (messageId: string) => {
       const searchParams = new URLSearchParams(location.search);

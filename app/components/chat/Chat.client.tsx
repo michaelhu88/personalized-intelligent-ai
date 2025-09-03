@@ -234,10 +234,12 @@ export const ChatImpl = memo(
       },
       sendExtraMessageFields: true,
       onError: (e) => {
+        console.log('[DEBUG] useChat onError triggered, setting fakeLoading to false');
         setFakeLoading(false);
         handleError(e, 'chat');
       },
       onFinish: (message, response) => {
+        console.log('[DEBUG] useChat onFinish triggered, streaming should be ending');
         const usage = response.usage;
         setData(undefined);
 
@@ -258,6 +260,22 @@ export const ChatImpl = memo(
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+    
+    // Debug logging for isLoading state changes
+    useEffect(() => {
+      console.log('[DEBUG] isLoading from useChat changed:', isLoading);
+    }, [isLoading]);
+    
+    useEffect(() => {
+      console.log('[DEBUG] fakeLoading state changed:', fakeLoading);
+    }, [fakeLoading]);
+    
+    // Debug the combined isStreaming value that gets passed down
+    const combinedIsStreaming = isLoading || fakeLoading;
+    useEffect(() => {
+      console.log('[DEBUG] Combined isStreaming value:', combinedIsStreaming, '(isLoading:', isLoading, ', fakeLoading:', fakeLoading, ')');
+    }, [combinedIsStreaming, isLoading, fakeLoading]);
+    
     useEffect(() => {
       const prompt = searchParams.get('prompt');
 
@@ -313,7 +331,10 @@ export const ChatImpl = memo(
     };
 
     const abort = () => {
+      console.log('[DEBUG] abort() called');
       stop();
+      setFakeLoading(false); // Immediately set fakeLoading to false
+      setData([]); // Clear progress annotations immediately
       chatStore.setKey('aborted', true);
       workbenchStore.abortAllActions();
 
@@ -323,6 +344,7 @@ export const ChatImpl = memo(
         model,
         provider: provider.name,
       });
+      console.log('[DEBUG] abort() completed, fakeLoading set to false, data cleared');
     };
 
     const handleError = useCallback(
@@ -481,6 +503,7 @@ export const ChatImpl = memo(
     };
 
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
+      console.log('[DEBUG] sendMessage called, current isLoading:', isLoading, ', fakeLoading:', fakeLoading);
       const messageContent = messageInput || input;
 
       if (!messageContent?.trim()) {
@@ -488,6 +511,7 @@ export const ChatImpl = memo(
       }
 
       if (isLoading) {
+        console.log('[DEBUG] Already loading, calling abort');
         abort();
         return;
       }
@@ -613,6 +637,7 @@ export const ChatImpl = memo(
         const attachmentOptions =
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
 
+        console.log('[DEBUG] About to call append() with modified files, isLoading before append:', isLoading);
         append(
           {
             role: 'user',
@@ -621,6 +646,7 @@ export const ChatImpl = memo(
           },
           attachmentOptions,
         );
+        console.log('[DEBUG] append() called with modified files, isLoading after append:', isLoading);
 
         workbenchStore.resetAllFileModifications();
       } else {
@@ -629,6 +655,7 @@ export const ChatImpl = memo(
         const attachmentOptions =
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
 
+        console.log('[DEBUG] About to call append() without modified files, isLoading before append:', isLoading);
         append(
           {
             role: 'user',
@@ -637,6 +664,7 @@ export const ChatImpl = memo(
           },
           attachmentOptions,
         );
+        console.log('[DEBUG] append() called without modified files, isLoading after append:', isLoading);
       }
 
       setInput('');
@@ -695,7 +723,7 @@ export const ChatImpl = memo(
         input={input}
         showChat={showChat}
         chatStarted={chatStarted}
-        isStreaming={isLoading || fakeLoading}
+        isStreaming={combinedIsStreaming}
         onStreamingChange={(streaming) => {
           streamingState.set(streaming);
         }}

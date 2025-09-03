@@ -11,6 +11,8 @@ interface SendButtonProps {
 const customEasingFn = cubicBezier(0.4, 0, 0.2, 1);
 
 export const SendButton = ({ show, isStreaming, disabled, onClick }: SendButtonProps) => {
+  console.log('[DEBUG] SendButton render - show:', show, 'isStreaming:', isStreaming, 'disabled:', disabled);
+  
   return (
     <AnimatePresence>
       {show ? (
@@ -22,6 +24,7 @@ export const SendButton = ({ show, isStreaming, disabled, onClick }: SendButtonP
           exit={{ opacity: 0, y: 10 }}
           disabled={disabled}
           onClick={(event) => {
+            console.log('[DEBUG] SendButton clicked, isStreaming:', isStreaming);
             event.preventDefault();
 
             if (!disabled) {
