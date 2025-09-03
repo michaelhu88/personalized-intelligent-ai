@@ -73,8 +73,8 @@ interface BaseChatProps {
   llmErrorAlert?: LlmErrorAlertType;
   clearLlmErrorAlert?: () => void;
   data?: JSONValue[] | undefined;
-  chatMode?: 'discuss' | 'build';
-  setChatMode?: (mode: 'discuss' | 'build') => void;
+  chatMode?: 'discuss' | 'build' | 'planning';
+  setChatMode?: (mode: 'discuss' | 'build' | 'planning') => void;
   append?: (message: Message) => void;
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
@@ -347,14 +347,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       >
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
+          <div className={classNames(
+            styles.Chat, 
+            'flex flex-col flex-grow h-full',
+            chatMode === 'planning' ? 'w-full' : 'lg:min-w-[var(--chat-min-width)]'
+          )}>
             {!chatStarted && (
               <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+                {chatMode === 'planning' && (
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mb-6 animate-fade-in">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    Planning Phase
+                  </div>
+                )}
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
+                  Let's plan your project
                 </h1>
                 <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
+                  Think through requirements, architecture, and approach before building.
                 </p>
               </div>
             )}
@@ -366,20 +376,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               initial="smooth"
             >
               <StickToBottom.Content className="flex flex-col gap-4 relative ">
+                {chatStarted && (
+                  <div className="flex justify-center mb-2">
+                    <div className={classNames(
+                      'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
+                      chatMode === 'planning' 
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        : chatMode === 'build'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                    )}>
+                      <div className={classNames(
+                        'w-2 h-2 rounded-full mr-2',
+                        chatMode === 'planning' 
+                          ? 'bg-blue-500'
+                          : chatMode === 'build'
+                          ? 'bg-green-500' 
+                          : 'bg-purple-500'
+                      )}></div>
+                      {chatMode === 'planning' 
+                        ? 'Planning Phase' 
+                        : chatMode === 'build'
+                        ? 'Build Phase'
+                        : 'Discussion Phase'
+                      }
+                    </div>
+                  </div>
+                )}
                 <ClientOnly>
                   {() => {
                     return chatStarted ? (
-                      <Messages
-                        className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
-                        messages={messages}
-                        isStreaming={isStreaming}
-                        append={append}
-                        chatMode={chatMode}
-                        setChatMode={setChatMode}
-                        provider={provider}
-                        model={model}
-                        addToolResult={addToolResult}
-                      />
+                      <>
+                        <Messages
+                          className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                          messages={messages}
+                          isStreaming={isStreaming}
+                          append={append}
+                          chatMode={chatMode}
+                          setChatMode={setChatMode}
+                          provider={provider}
+                          model={model}
+                          addToolResult={addToolResult}
+                        />
+                        {chatMode === 'planning' && messages && messages.length > 2 && (
+                          <div className="flex justify-center mb-4">
+                            <button
+                              onClick={() => setChatMode?.('build')}
+                              className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
+                            >
+                              <div className="i-ph:code-bold text-xl mr-2" />
+                              Start Building
+                            </button>
+                          </div>
+                        )}
+                      </>
                     ) : null;
                   }}
                 </ClientOnly>
@@ -491,7 +541,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           <ClientOnly>
             {() => (
-              <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
+              chatStarted && chatMode !== 'planning' && (
+                <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
+              )
             )}
           </ClientOnly>
         </div>

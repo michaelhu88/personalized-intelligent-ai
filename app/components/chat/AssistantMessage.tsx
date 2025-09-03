@@ -25,8 +25,8 @@ interface AssistantMessageProps {
   onRewind?: (messageId: string) => void;
   onFork?: (messageId: string) => void;
   append?: (message: Message) => void;
-  chatMode?: 'discuss' | 'build';
-  setChatMode?: (mode: 'discuss' | 'build') => void;
+  chatMode?: 'discuss' | 'build' | 'planning';
+  setChatMode?: (mode: 'discuss' | 'build' | 'planning') => void;
   model?: string;
   provider?: ProviderInfo;
   parts:
@@ -146,11 +146,6 @@ export const AssistantMessage = memo(
               </Popover>
             )}
             <div className="flex w-full items-center justify-between">
-              {usage && (
-                <div>
-                  Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
-                </div>
-              )}
               {(onRewind || onFork) && messageId && (
                 <div className="flex gap-2 flex-col lg:flex-row ml-auto">
                   {onRewind && (

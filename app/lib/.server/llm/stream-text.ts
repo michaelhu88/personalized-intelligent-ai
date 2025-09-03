@@ -9,6 +9,7 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import { createScopedLogger } from '~/utils/logger';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
+import { planningPrompt } from '~/lib/common/prompts/planning-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
 
 export type Messages = Message[];
@@ -63,7 +64,7 @@ export async function streamText(props: {
   contextFiles?: FileMap;
   summary?: string;
   messageSliceId?: number;
-  chatMode?: 'discuss' | 'build';
+  chatMode?: 'discuss' | 'build' | 'planning';
   designScheme?: DesignScheme;
 }) {
   const {
@@ -280,7 +281,7 @@ export async function streamText(props: {
       apiKeys,
       providerSettings,
     }),
-    system: chatMode === 'build' ? systemPrompt : discussPrompt(),
+    system: chatMode === 'build' ? systemPrompt : chatMode === 'planning' ? planningPrompt() : discussPrompt(),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,

@@ -26,6 +26,8 @@ import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/Cloud
 import ServiceStatusTab from '~/components/@settings/tabs/providers/status/ServiceStatusTab';
 import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
 import McpTab from '~/components/@settings/tabs/mcp/McpTab';
+import { AppsTab } from '~/components/@settings/tabs/apps/AppsTab';
+import MemoryTab from '~/components/@settings/tabs/memory/MemoryTab';
 
 interface ControlPanelProps {
   open: boolean;
@@ -128,6 +130,10 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return <NotificationsTab />;
       case 'features':
         return <FeaturesTab />;
+      case 'apps':
+        return <AppsTab />;
+      case 'memory':
+        return <MemoryTab />;
       case 'data':
         return <DataTab />;
       case 'cloud-providers':

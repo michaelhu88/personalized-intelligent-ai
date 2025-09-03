@@ -13,7 +13,9 @@ export type TabType =
   | 'service-status'
   | 'connection'
   | 'event-logs'
-  | 'mcp';
+  | 'mcp'
+  | 'apps'
+  | 'memory';
 
 export type WindowType = 'user' | 'developer';
 
@@ -74,6 +76,8 @@ export const TAB_LABELS: Record<TabType, string> = {
   connection: 'Connections',
   'event-logs': 'Event Logs',
   mcp: 'MCP Servers',
+  apps: 'My Apps',
+  memory: 'AI Memory',
 };
 
 export const categoryLabels: Record<SettingCategory, string> = {

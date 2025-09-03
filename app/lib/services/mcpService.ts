@@ -17,6 +17,8 @@ import {
   TOOL_NO_EXECUTE_FUNCTION,
 } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
+import { appBuildingTools, type AppBuildingContext } from './appBuildingTools';
+import { PersonalizationService } from './personalizationService';
 
 const logger = createScopedLogger('mcp-service');
 
@@ -107,6 +109,7 @@ export class MCPService {
   private _toolsWithoutExecute: ToolSet = {};
   private _mcpToolsPerServer: MCPServerTools = {};
   private _toolNamesToServerNames = new Map<string, string>();
+  private _appBuildingToolsContext: AppBuildingContext | null = null;
   private _config: MCPConfig = {
     mcpServers: {},
   };
@@ -453,5 +456,30 @@ export class MCPService {
 
   get toolsWithoutExecute() {
     return this._toolsWithoutExecute;
+  }
+
+  initializeAppBuildingTools(personalizationService: PersonalizationService, userId?: string, appId?: string) {
+    this._appBuildingToolsContext = {
+      userId,
+      appId,
+      personalizationService,
+    };
+
+    // Register app-building tools
+    Object.entries(appBuildingTools).forEach(([toolName, tool]) => {
+      // Use the tool directly since it doesn't need special context handling for now
+      this._tools[toolName] = tool;
+      this._toolsWithoutExecute[toolName] = { ...tool, execute: undefined };
+      this._toolNamesToServerNames.set(toolName, 'app-building-tools');
+    });
+
+    logger.info(`Registered ${Object.keys(appBuildingTools).length} app-building tools for user ${userId}${appId ? ` in app ${appId}` : ''}`);
+  }
+
+  updateAppBuildingContext(userId?: string, appId?: string) {
+    if (this._appBuildingToolsContext) {
+      this._appBuildingToolsContext.userId = userId;
+      this._appBuildingToolsContext.appId = appId;
+    }
   }
 }

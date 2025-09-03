@@ -28,6 +28,9 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { SessionService } from '~/lib/services/sessionService';
+import { googleAuthService, type AuthState } from '~/lib/services/googleAuthService';
+import { AuthGate } from './AuthGate';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -39,23 +42,30 @@ const logger = createScopedLogger('Chat');
 export function Chat() {
   renderLogger.trace('Chat');
 
+  // For authenticated users, we'll eventually use the new PostgreSQL system
+  // For now, fallback to the old system but wrapped in AuthGate
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
+  
   useEffect(() => {
-    workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
-  }, [initialMessages]);
+    if (ready && initialMessages) {
+      workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
+    }
+  }, [initialMessages, ready]);
 
   return (
     <>
-      {ready && (
-        <ChatImpl
-          description={title}
-          initialMessages={initialMessages}
-          exportChat={exportChat}
-          storeMessageHistory={storeMessageHistory}
-          importChat={importChat}
-        />
-      )}
+      <AuthGate>
+        {ready && (
+          <ChatImpl
+            description={title}
+            initialMessages={initialMessages}
+            exportChat={exportChat}
+            storeMessageHistory={storeMessageHistory}
+            importChat={importChat}
+          />
+        )}
+      </AuthGate>
       <ToastContainer
         closeButton={({ closeToast }) => {
           return (
@@ -146,9 +156,46 @@ export const ChatImpl = memo(
     const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-    const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
+    const [chatMode, setChatMode] = useState<'discuss' | 'build' | 'planning'>('planning');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [userInfo, setUserInfo] = useState<{ email?: string; name?: string } | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
+
+    // Get userId on client-side only, preferring Google auth over session ID
+    useEffect(() => {
+      // Initialize userId with session ID (fallback for anonymous users)
+      const sessionId = SessionService.getUserId();
+      setUserId(sessionId);
+
+      // Listen for Google auth state changes and prefer Google user ID
+      const unsubscribe = googleAuthService.addListener((authState: AuthState) => {
+        if (authState.isAuthenticated && authState.user) {
+          // Use Google user ID when authenticated
+          setUserId(`google_${authState.user.id}`);
+          setUserInfo({
+            email: authState.user.email,
+            name: authState.user.name,
+          });
+        } else {
+          // Fall back to session ID when not authenticated
+          setUserId(sessionId);
+          setUserInfo(null);
+        }
+      });
+
+      // Check initial Google auth state
+      const initialAuthState = googleAuthService.getAuthState();
+      if (initialAuthState.isAuthenticated && initialAuthState.user) {
+        setUserId(`google_${initialAuthState.user.id}`);
+        setUserInfo({
+          email: initialAuthState.user.email,
+          name: initialAuthState.user.name,
+        });
+      }
+
+      return unsubscribe;
+    }, []);
 
     const {
       messages,
@@ -173,6 +220,8 @@ export const ChatImpl = memo(
         contextOptimization: contextOptimizationEnabled,
         chatMode,
         designScheme,
+        ...(userId && { userId }), // Only include userId when available (client-side)
+        ...(userInfo && { userInfo }), // Include user info for Google authenticated users
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -232,6 +281,18 @@ export const ChatImpl = memo(
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
     }, []);
+
+    // Auto-select GPT-4o-mini for planning mode
+    useEffect(() => {
+      if (chatMode === 'planning' && model !== 'gpt-4o-mini') {
+        setModel('gpt-4o-mini');
+        // Also ensure OpenAI provider is selected
+        const openaiProvider = PROVIDER_LIST.find((p) => p.name === 'OpenAI');
+        if (openaiProvider && provider.name !== 'OpenAI') {
+          setProvider(openaiProvider);
+        }
+      }
+    }, [chatMode, model, provider, setModel, setProvider]);
 
     useEffect(() => {
       processSampledMessages({

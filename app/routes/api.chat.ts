@@ -13,6 +13,7 @@ import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
+import { PersonalizationService } from '~/lib/services/personalizationService';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -39,13 +40,13 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
+  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps, userId, appId, userInfo } =
     await request.json<{
       messages: Messages;
       files: any;
       promptId?: string;
       contextOptimization: boolean;
-      chatMode: 'discuss' | 'build';
+      chatMode: 'discuss' | 'build' | 'planning';
       designScheme?: DesignScheme;
       supabase?: {
         isConnected: boolean;
@@ -56,6 +57,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         };
       };
       maxLLMSteps: number;
+      userId?: string;
+      appId?: string;
+      userInfo?: {
+        email?: string;
+        name?: string;
+      };
     }>();
 
   const cookieHeader = request.headers.get('Cookie');
@@ -76,8 +83,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const mcpService = MCPService.getInstance();
+    const personalizationService = new PersonalizationService({
+      DATABASE_URL: context.cloudflare?.env?.DATABASE_URL,
+      OPENAI_API_KEY: apiKeys.OPENAI_API_KEY || context.cloudflare?.env?.OPENAI_API_KEY,
+    });
+
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
+
+    // Ensure user exists and create one if userId is provided
+    if (userId && personalizationService.isEnabled()) {
+      await personalizationService.ensureUser(
+        userId,
+        userInfo?.email,
+        userInfo?.name
+      );
+      logger.debug(`Using personalization for user: ${userId} (${userInfo?.email || 'no email'})`);
+    }
+
+    // Initialize app-building tools with personalization context
+    mcpService.initializeAppBuildingTools(personalizationService, userId, appId);
 
     let lastChunk: string | undefined = undefined;
 
@@ -92,6 +117,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         if (processedMessages.length > 3) {
           messageSliceId = processedMessages.length - 3;
+        }
+
+        // Add personalized context if user/app specified
+        let personalizedContext = '';
+        if (userId && personalizationService.isEnabled()) {
+          const lastUserMessage = processedMessages.filter(m => m.role === 'user').slice(-1)[0];
+          if (lastUserMessage) {
+            personalizedContext = await personalizationService.getPersonalizedContext(
+              userId,
+              lastUserMessage.content,
+              appId
+            );
+          }
         }
 
         if (filePaths.length > 0 && contextOptimization) {
@@ -216,6 +254,24 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
 
+            // Store conversation in memory for personalization
+            if (userId && personalizationService.isEnabled()) {
+              const lastUserMessage = processedMessages.filter(m => m.role === 'user').slice(-1)[0];
+              if (lastUserMessage && content) {
+                const conversationSummary = `User: ${lastUserMessage.content}\nAssistant: ${content.substring(0, 500)}...`;
+                await personalizationService.storeMemory(
+                  userId,
+                  conversationSummary,
+                  appId,
+                  {
+                    type: 'conversation',
+                    chatMode,
+                    success: finishReason !== 'error'
+                  }
+                );
+              }
+            }
+
             if (finishReason !== 'length') {
               dataStream.writeMessageAnnotation({
                 type: 'usage',
@@ -255,8 +311,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
             });
 
+            // Also inject personalized context for continuation
+            let continuationMessages = [...processedMessages];
+            if (personalizedContext && continuationMessages.length > 0) {
+              const lastMessage = continuationMessages[continuationMessages.length - 1];
+              if (lastMessage.role === 'user') {
+                continuationMessages[continuationMessages.length - 1] = {
+                  ...lastMessage,
+                  content: lastMessage.content + personalizedContext
+                };
+              }
+            }
+
             const result = await streamText({
-              messages: [...processedMessages],
+              messages: continuationMessages,
               env: context.cloudflare?.env,
               options,
               apiKeys,
@@ -296,8 +364,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           message: 'Generating Response',
         } satisfies ProgressAnnotation);
 
+        // Inject personalized context into messages if available
+        let messagesToSend = [...processedMessages];
+        if (personalizedContext && messagesToSend.length > 0) {
+          const lastMessage = messagesToSend[messagesToSend.length - 1];
+          if (lastMessage.role === 'user') {
+            messagesToSend[messagesToSend.length - 1] = {
+              ...lastMessage,
+              content: lastMessage.content + personalizedContext
+            };
+          }
+        }
+
         const result = await streamText({
-          messages: [...processedMessages],
+          messages: messagesToSend,
           env: context.cloudflare?.env,
           options,
           apiKeys,
