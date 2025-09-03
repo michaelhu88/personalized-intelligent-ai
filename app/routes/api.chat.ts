@@ -1,6 +1,6 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { createDataStream, generateId } from 'ai';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, CHAT_CONFIG, type FileMap } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
@@ -40,7 +40,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps, userId, appId, userInfo } =
+  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps, userId, appId, userInfo, chatSessionId } =
     await request.json<{
       messages: Messages;
       files: any;
@@ -63,6 +63,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         email?: string;
         name?: string;
       };
+      chatSessionId?: string;
     }>();
 
   const cookieHeader = request.headers.get('Cookie');
@@ -99,6 +100,36 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         userInfo?.name
       );
       logger.debug(`Using personalization for user: ${userId} (${userInfo?.email || 'no email'})`);
+    }
+
+    // Handle chat session creation and message storage
+    let currentChatSessionId = chatSessionId;
+    const maxMessageLength = CHAT_CONFIG.MAX_MESSAGE_LENGTH;
+    
+    if (userId && personalizationService.isEnabled()) {
+      // Create new chat session if one doesn't exist
+      if (!currentChatSessionId) {
+        const chatSession = await personalizationService.createChatSession(userId);
+        currentChatSessionId = chatSession?.id;
+        logger.debug(`Created new chat session: ${currentChatSessionId}`);
+      }
+
+      // Store the latest user message if we have a session
+      if (currentChatSessionId && messages.length > 0) {
+        const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0];
+        if (lastUserMessage) {
+          const truncatedContent = lastUserMessage.content.substring(0, maxMessageLength);
+          await personalizationService.saveChatMessage(
+            userId,
+            currentChatSessionId,
+            'user',
+            truncatedContent,
+            `${messages.length}`,
+            { chatMode, timestamp: new Date() }
+          );
+          logger.debug(`Stored user message in session ${currentChatSessionId}`);
+        }
+      }
     }
 
     // Initialize app-building tools with personalization context
@@ -254,11 +285,31 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
 
-            // Store conversation in memory for personalization
+            // Store full AI response in chat session
+            if (userId && personalizationService.isEnabled() && currentChatSessionId && content) {
+              const truncatedContent = content.substring(0, maxMessageLength);
+              await personalizationService.saveChatMessage(
+                userId,
+                currentChatSessionId,
+                'assistant',
+                truncatedContent,
+                `${processedMessages.length + 1}`,
+                { 
+                  chatMode, 
+                  finishReason,
+                  usage,
+                  timestamp: new Date(),
+                  truncated: content.length > maxMessageLength
+                }
+              );
+              logger.debug(`Stored AI response in session ${currentChatSessionId}`);
+            }
+
+            // Store conversation in memory for personalization (summary for vector search)
             if (userId && personalizationService.isEnabled()) {
               const lastUserMessage = processedMessages.filter(m => m.role === 'user').slice(-1)[0];
               if (lastUserMessage && content) {
-                const conversationSummary = `User: ${lastUserMessage.content}\nAssistant: ${content.substring(0, 500)}...`;
+                const conversationSummary = `User: ${lastUserMessage.content}\nAssistant: ${content.substring(0, CHAT_CONFIG.SUMMARY_LENGTH)}...`;
                 await personalizationService.storeMemory(
                   userId,
                   conversationSummary,

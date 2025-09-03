@@ -17,6 +17,8 @@ import type {
 } from '@ai-sdk/ui-utils';
 import { ToolInvocations } from './ToolInvocations';
 import type { ToolCallAnnotation } from '~/types/context';
+import { isStructuredPlan, parseStructuredPlan } from '~/lib/utils/planDetection';
+import { PlanDisplay } from './PlanDisplay';
 
 interface AssistantMessageProps {
   content: string;
@@ -33,6 +35,7 @@ interface AssistantMessageProps {
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  userId?: string;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -73,6 +76,7 @@ export const AssistantMessage = memo(
     provider,
     parts,
     addToolResult,
+    userId,
   }: AssistantMessageProps) => {
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
@@ -171,9 +175,35 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
-        <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
-          {content}
-        </Markdown>
+        {/* Render structured plan or regular markdown content */}
+        {isStructuredPlan(content) && chatMode === 'planning' ? (
+          (() => {
+            const plan = parseStructuredPlan(content);
+            return plan ? (
+              <PlanDisplay 
+                plan={plan}
+                userId={userId}
+                onApprove={() => setChatMode?.('build')}
+                onRevise={() => {
+                  if (append) {
+                    append({
+                      role: 'user',
+                      content: 'Please revise this plan. I need changes to better fit my requirements.'
+                    });
+                  }
+                }}
+              />
+            ) : (
+              <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
+                {content}
+              </Markdown>
+            );
+          })()
+        ) : (
+          <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
+            {content}
+          </Markdown>
+        )}
         {toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
             toolInvocations={toolInvocations}

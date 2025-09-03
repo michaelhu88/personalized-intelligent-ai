@@ -8,7 +8,7 @@ export async function action({ context, request }: ActionFunctionArgs) {
   try {
     const { userId, action, content, userInfo } = await request.json<{
       userId: string;
-      action: 'get' | 'set';
+      action: 'get' | 'set' | 'append';
       content?: string;
       userInfo?: {
         email?: string;
@@ -48,8 +48,25 @@ export async function action({ context, request }: ActionFunctionArgs) {
       logger.debug(`Updated persistent memory for user ${userId}`);
       
       return json({ success: true });
+    } else if (action === 'append') {
+      if (typeof content !== 'string') {
+        return json({ error: 'Content is required for append action' }, { status: 400 });
+      }
+
+      // Get existing memory
+      const existingMemory = await personalizationService.getPersistentMemory(userId);
+      
+      // Append new content with proper spacing
+      const updatedMemory = existingMemory 
+        ? `${existingMemory}\n\n${content}`
+        : content;
+      
+      await personalizationService.setPersistentMemory(userId, updatedMemory);
+      logger.debug(`Appended to persistent memory for user ${userId}`);
+      
+      return json({ success: true });
     } else {
-      return json({ error: 'Invalid action. Use "get" or "set"' }, { status: 400 });
+      return json({ error: 'Invalid action. Use "get", "set", or "append"' }, { status: 400 });
     }
   } catch (error) {
     logger.error('Failed to handle persistent memory request:', error);

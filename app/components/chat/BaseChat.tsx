@@ -81,6 +81,7 @@ interface BaseChatProps {
   selectedElement?: ElementInfo | null;
   setSelectedElement?: (element: ElementInfo | null) => void;
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  userId?: string;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -130,6 +131,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       addToolResult = () => {
         throw new Error('addToolResult not implemented');
       },
+      userId,
     },
     ref,
   ) => {
@@ -353,7 +355,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             chatMode === 'planning' ? 'w-full' : 'lg:min-w-[var(--chat-min-width)]'
           )}>
             {!chatStarted && (
-              <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+              <div id="intro" className={classNames(
+                "mt-[16vh] text-center",
+                chatMode === 'planning'
+                  ? 'max-w-4xl mx-auto px-8 sm:px-12 lg:px-16 xl:px-20'
+                  : 'max-w-2xl mx-auto px-4 lg:px-0'
+              )}>
                 {chatMode === 'planning' && (
                   <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mb-6 animate-fade-in">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
@@ -408,7 +415,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     return chatStarted ? (
                       <>
                         <Messages
-                          className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                          className={classNames(
+                            'flex flex-col w-full flex-1 pb-4 z-1',
+                            chatMode === 'planning' 
+                              ? (chatStarted ? 'max-w-chat-planning-active w-full' : 'max-w-chat-planning mx-auto')
+                              : 'max-w-chat mx-auto'
+                          )}
                           messages={messages}
                           isStreaming={isStreaming}
                           append={append}
@@ -417,6 +429,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           provider={provider}
                           model={model}
                           addToolResult={addToolResult}
+                          userId={userId}
                         />
                         {chatMode === 'planning' && messages && messages.length > 2 && (
                           <div className="flex justify-center mb-4">
@@ -436,9 +449,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <ScrollToBottom />
               </StickToBottom.Content>
               <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
-                  'sticky bottom-2': chatStarted,
-                })}
+                className={classNames(
+                  'my-auto flex flex-col gap-2 w-full z-prompt mb-6',
+                  chatMode === 'planning' 
+                    ? (chatStarted ? 'max-w-chat-planning-active w-full' : 'max-w-chat-planning mx-auto')
+                    : 'max-w-chat mx-auto',
+                  {
+                    'sticky bottom-2': chatStarted,
+                  }
+                )}
               >
                 <div className="flex flex-col gap-2">
                   {deployAlert && (

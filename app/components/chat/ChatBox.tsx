@@ -67,7 +67,10 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   return (
     <div
       className={classNames(
-        'relative bg-bolt-elements-background-depth-2 backdrop-blur p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
+        'relative bg-bolt-elements-background-depth-2 backdrop-blur p-3 rounded-lg border border-bolt-elements-borderColor relative w-full z-prompt',
+        props.chatMode === 'planning' 
+          ? (props.chatStarted ? 'max-w-chat-planning-active w-full' : 'max-w-chat-planning mx-auto')
+          : 'max-w-chat mx-auto',
 
         /*
          * {

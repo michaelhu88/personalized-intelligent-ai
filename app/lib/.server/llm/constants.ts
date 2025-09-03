@@ -46,6 +46,13 @@ export function isReasoningModel(modelName: string): boolean {
 // limits the number of model responses that can be returned in a single request
 export const MAX_RESPONSE_SEGMENTS = 2;
 
+// Chat storage configuration
+export const CHAT_CONFIG = {
+  MAX_MESSAGE_LENGTH: 15000, // Maximum characters to store per message
+  MAX_MESSAGES_PER_SESSION: 1000, // Maximum messages per chat session
+  SUMMARY_LENGTH: 500, // Length for vector search summaries
+} as const;
+
 export interface File {
   type: 'file';
   content: string;

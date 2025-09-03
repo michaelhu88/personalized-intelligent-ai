@@ -104,6 +104,9 @@ export default defineConfig({
     'transition-theme': 'transition-[background-color,border-color,color] duration-150 bolt-ease-cubic-bezier',
     kdb: 'bg-bolt-elements-code-background text-bolt-elements-code-text py-1 px-1.5 rounded-md',
     'max-w-chat': 'max-w-[var(--chat-max-width)]',
+    'max-w-chat-planning': 'max-w-2xl',
+    'max-w-chat-planning-active': 'max-w-none',
+    'w-chat-planning': 'w-full',
   },
   rules: [
     /**

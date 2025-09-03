@@ -22,6 +22,7 @@ interface MessagesProps {
   model?: string;
   provider?: ProviderInfo;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  userId?: string;
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
@@ -86,6 +87,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                         provider={props.provider}
                         parts={parts}
                         addToolResult={props.addToolResult}
+                        userId={props.userId}
                       />
                     )}
                   </div>

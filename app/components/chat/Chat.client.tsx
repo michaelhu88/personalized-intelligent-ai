@@ -758,6 +758,7 @@ export const ChatImpl = memo(
         selectedElement={selectedElement}
         setSelectedElement={setSelectedElement}
         addToolResult={addToolResult}
+        userId={userId}
       />
     );
   },
